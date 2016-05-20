@@ -7,6 +7,9 @@ double rpmCur = 0;
 double rpmPrev = 0;
 int spikesCounter = 0;
 
+bool blinkState = false;
+long blinkLastTime = 0;
+
 
 void setup() { 
   Serial.begin(9600);
@@ -24,8 +27,9 @@ void loop()
 {
  
   int shiftRpm = getShiftThreshold();
-  Serial.println(shiftRpm);
+  Serial.println(rpmCur);
   showRpm(rpmCur, shiftRpm);
+  //showRpm(9000, 6000);
 
   
 }
@@ -43,28 +47,48 @@ int getShiftThreshold()
 
 void showRpm(double rpm, int shiftRpm)
 {
-    const double rpmMin = 800;
-    const double ledMax = 1536;             //6 leds x 256
-    int digitalValue;
-    digitalValue = (int)constrain(ledMax / shiftRpm * rpm, 0, ledMax);
+    double curRpm = rpm;
 
-    for (int i = 3; i < 9; i++)
+    if (rpm > shiftRpm )
     {
-      digitalWrite(i, constrain(digitalValue, 0, 255));
-      digitalValue = digitalValue - 256;
-    }
+      Serial.println(blinkState);
+      if (blinkState && millis() - blinkLastTime > 50)
+      {
+        for (int i = 3; i < 9; i++)
+        {
+          digitalWrite(i, HIGH);
+        }
+        blinkLastTime = millis();
+        blinkState = !blinkState;
+      }
+      else if (!blinkState && millis() - blinkLastTime > 50)
+      {
+        for (int i = 3; i < 9; i++)
+        {
+          digitalWrite(i, LOW);
+        }
+        blinkLastTime = millis();
+        blinkState = !blinkState;
+      }
 
-    
-    //Serial.println(digitalValue, DEC);
-    /*
-    if (rpm > 2000) {digitalWrite(3, HIGH);} else {digitalWrite(3, LOW);}
-    if (rpm > 3000) {digitalWrite(4, HIGH);} else {digitalWrite(4, LOW);}
-    if (rpm > 4000) {digitalWrite(5, HIGH);} else {digitalWrite(5, LOW);}
-    if (rpm > 5000) {digitalWrite(6, HIGH);} else {digitalWrite(6, LOW);}
-    if (rpm > 6000) {digitalWrite(7, HIGH);} else {digitalWrite(7, LOW);}
-    if (rpm > 7000) {digitalWrite(8, HIGH);} else {digitalWrite(8, LOW);}
-    */
-    //Serial.println(rpm);
+
+    }
+    else
+    {    
+      for (int i = 3; i < 9; i++)
+      {
+        if (curRpm > shiftRpm / 7)
+        {
+          digitalWrite(i, HIGH);
+        }
+        else
+        {
+          digitalWrite(i, LOW);
+        }
+  
+        curRpm = curRpm - shiftRpm / 7;
+      }
+    }
 }
 
 bool checkForSpike(double rpm1, double rpm2)
