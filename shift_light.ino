@@ -1,6 +1,8 @@
 #define rpmPin 2 // датчик Холла
 
 const int tunePin = A0;
+const int potentiometerPin = A0;
+const int ledCount = 6;
 
 long microsPrev = 0;
 double rpmCur = 0;
@@ -34,66 +36,54 @@ void loop()
   
 }
 
-int getShiftThreshold()
+int getShiftThreshold()                                         //Function checks the potentiometer input and converts it to rev/minute (3000 - 9000)
 {
-  const int potentiometerPin = A0;
-
   int sensorValue = analogRead(potentiometerPin);
   sensorValue = constrain(sensorValue, 0, 1023);
   return map(sensorValue, 0, 1023, 3000, 9000);
 }
 
-
-
-void showRpm(double rpm, int shiftRpm)
+void leds(int count)                                              //Function activates/deactivates XX number of leds in the strip
 {
-    double curRpm = rpm;
-
-    if (rpm > shiftRpm )
+  for (int i = 1; i <= ledCount; i++)                             //Hardcoded 6 LEDS on PINS D3-D8
+  {
+    if (i > count) 
     {
-      Serial.println(blinkState);
-      if (blinkState && millis() - blinkLastTime > 50)
-      {
-        for (int i = 3; i < 9; i++)
-        {
-          digitalWrite(i, HIGH);
-        }
-        blinkLastTime = millis();
-        blinkState = !blinkState;
-      }
-      else if (!blinkState && millis() - blinkLastTime > 50)
-      {
-        for (int i = 3; i < 9; i++)
-        {
-          digitalWrite(i, LOW);
-        }
-        blinkLastTime = millis();
-        blinkState = !blinkState;
-      }
-
-
+      digitalWrite(i+2, LOW);
     }
     else
-    {    
-      for (int i = 3; i < 9; i++)
+    {
+      digitalWrite(i+2, HIGH);
+    }
+  }
+}
+
+void showRpm(double rpm, int shiftRpm)                          //Activates indicator based on current rpm and shift limit
+{
+    if (rpm >= shiftRpm && (millis() - blinkLastTime) > 40)     //Shift light blinks every 40 milliseconds
+    {
+      if (!blinkState)
       {
-        if (curRpm > shiftRpm / 7)
-        {
-          digitalWrite(i, HIGH);
-        }
-        else
-        {
-          digitalWrite(i, LOW);
-        }
-  
-        curRpm = curRpm - shiftRpm / 7;
+        leds(ledCount);                                         //Start with all leds ON
       }
+      else 
+      {
+        leds(0);
+      }
+      blinkLastTime = millis();
+      blinkState = !blinkState;
+    }
+    else if (rpm < shiftRpm)                          //Indicate current engine speed with leds strip
+    {    
+      int count = (int)rpm / (shiftRpm / ledCount);   //Count how many leds to activate
+      leds(count);
+      blinkState = false;                             //Next time to start shift blinking with leds ON
     }
 }
 
-bool checkForSpike(double rpm1, double rpm2)
+bool checkForSpike(double rpm1, double rpm2)          //Helper function to define spike (noise) between two rpm measurements
 {
-  const int spikeThreshold = 200;
+  const int spikeThreshold = 200;                     //200 rev/minute is defined as a spike
   
   return abs(rpm1 - rpm2) > spikeThreshold;
 }
