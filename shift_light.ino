@@ -23,6 +23,7 @@ void setup() {
   attachInterrupt(0, getRpm, RISING);
 
   pixels.begin();
+  piu();
 }
 
 
@@ -30,7 +31,20 @@ void loop()
 {
   int shiftRpm = getShiftThreshold();                           //Read potentiometer to define current shift threshhold
   Serial.println(rpmCur);
-  showRpm(rpmCur, shiftRpm);
+  if (idle())
+  {
+    showRpm(rpmCur, shiftRpm);
+  }
+  else
+  {
+    piu();
+  }
+}
+
+bool idle()
+{
+  Serial.println((micros() - microsPrev));
+  return ((micros() - microsPrev) < 100000);                       //Returns true if engine is running
 }
 
 int getShiftThreshold()                                         //Function checks the potentiometer input and converts it to rev/minute (3000 - 9000)
@@ -132,3 +146,17 @@ void getRpm()
   //Serial.println(rpm);
   
 }
+
+void piu(){
+  for (int i = 0; i <= NUMPIXELS; i++)                             
+  {
+      pixels.setPixelColor(i, pixels.Color(150, 150, 150));
+      pixels.setPixelColor(i-1, pixels.Color(0, 0, 0));
+      delay(10);
+      pixels.show();
+  }
+  
+  delay(1000);
+}
+
+
