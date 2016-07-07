@@ -1,12 +1,9 @@
 #include <Adafruit_NeoPixel.h>
 
-
-#define RPM_PIN        2   // датчик Холла
-#define LEDSTRIP_PIN   9
-#define NUMPIXELS     10
-
-const int tunePin = A0;
-const int potentiometerPin = A0;
+#define RPM_PIN        2    //Tachometer signal
+#define LEDSTRIP_PIN   9    //Digital output to led strip
+#define NUMPIXELS     10    //qty of leds in strip
+#define TUNE_PIN      A0    //Tuning potentiometer PIN
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -21,6 +18,7 @@ long blinkLastTime = 0;
 
 void setup() { 
   Serial.begin(9600);
+
   digitalWrite(RPM_PIN, 1);
   attachInterrupt(0, getRpm, RISING);
 
@@ -30,18 +28,14 @@ void setup() {
 
 void loop() 
 {
- 
   int shiftRpm = getShiftThreshold();                           //Read potentiometer to define current shift threshhold
   Serial.println(rpmCur);
   showRpm(rpmCur, shiftRpm);
-  //showRpm(9000, 6000);
-
-  
 }
 
 int getShiftThreshold()                                         //Function checks the potentiometer input and converts it to rev/minute (3000 - 9000)
 {
-  int sensorValue = analogRead(potentiometerPin);
+  int sensorValue = analogRead(TUNE_PIN);
   sensorValue = constrain(sensorValue, 0, 1023);
   return map(sensorValue, 0, 1023, 3000, 9000);
 }
@@ -59,8 +53,8 @@ void leds(int count)                                              //Function act
   }
 
   if (count == NUMPIXELS) {                                         //Shift-light mode
-    red = 150;
-    blue = 0;
+    red = 0;
+    blue = 150;
     green = 0;
   }
   
