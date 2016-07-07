@@ -1,8 +1,14 @@
-#define rpmPin 2 // датчик Холла
+#include <Adafruit_NeoPixel.h>
+
+
+#define RPM_PIN        2   // датчик Холла
+#define LEDSTRIP_PIN   9
+#define NUMPIXELS     10
 
 const int tunePin = A0;
 const int potentiometerPin = A0;
-const int ledCount = 6;
+
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
 long microsPrev = 0;
 double rpmCur = 0;
@@ -15,20 +21,17 @@ long blinkLastTime = 0;
 
 void setup() { 
   Serial.begin(9600);
-  digitalWrite(rpmPin, 1);
+  digitalWrite(RPM_PIN, 1);
   attachInterrupt(0, getRpm, RISING);
 
-  for (int i = 3; i < 9; i++)
-  {
-    pinMode(i, OUTPUT);
-  }
+  pixels.begin();
 }
 
 
 void loop() 
 {
  
-  int shiftRpm = getShiftThreshold();
+  int shiftRpm = getShiftThreshold();                           //Read potentiometer to define current shift threshhold
   Serial.println(rpmCur);
   showRpm(rpmCur, shiftRpm);
   //showRpm(9000, 6000);
@@ -45,17 +48,34 @@ int getShiftThreshold()                                         //Function check
 
 void leds(int count)                                              //Function activates/deactivates XX number of leds in the strip
 {
-  for (int i = 1; i <= ledCount; i++)                             //Hardcoded 6 LEDS on PINS D3-D8
+  int red = 150;
+  int green = 150;
+  int blue = 0;
+
+  if (count > NUMPIXELS * 2 / 3) {                                 //Performance range mode
+    red = 0;
+    blue = 0;
+    green = 150;
+  }
+
+  if (count == NUMPIXELS) {                                         //Shift-light mode
+    red = 150;
+    blue = 0;
+    green = 0;
+  }
+  
+  for (int i = 0; i < NUMPIXELS; i++)                             
   {
     if (i > count) 
     {
-      digitalWrite(i+2, LOW);
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
     }
     else
     {
-      digitalWrite(i+2, HIGH);
+      pixels.setPixelColor(i, pixels.Color(red, green, blue));
     }
   }
+  pixels.show();
 }
 
 void showRpm(double rpm, int shiftRpm)                          //Activates indicator based on current rpm and shift limit
@@ -64,7 +84,7 @@ void showRpm(double rpm, int shiftRpm)                          //Activates indi
     {
       if (!blinkState)
       {
-        leds(ledCount);                                         //Start with all leds ON
+        leds(NUMPIXELS);                                         //Start with all leds ON
       }
       else 
       {
@@ -75,7 +95,7 @@ void showRpm(double rpm, int shiftRpm)                          //Activates indi
     }
     else if (rpm < shiftRpm)                          //Indicate current engine speed with leds strip
     {    
-      int count = (int)rpm / (shiftRpm / ledCount);   //Count how many leds to activate
+      int count = (int)rpm / (shiftRpm / NUMPIXELS);   //Count how many leds to activate
       leds(count);
       blinkState = false;                             //Next time to start shift blinking with leds ON
     }
@@ -92,13 +112,13 @@ void getRpm()
 {
   const int maxSpikes = 5;                   
   
-  rpmCur = (1000000.0/(micros() - microsPrev))*60;
+  rpmCur = (1000000.0/(micros() - microsPrev))*60 / 2;
   
   //Catch spikes
   bool isSpike = checkForSpike(rpmCur, rpmPrev);
   if (isSpike) 
   {
-    if (spikesCounter < maxSpikes)           //More than XX spikes in a row considered as good value
+    if (spikesCounter < maxSpikes)           //More than (qty = maxSpikes) in a row considered as good value
     {
       spikesCounter++;
       rpmCur = rpmPrev;                              //Take previous rpm value in case spike is detected
