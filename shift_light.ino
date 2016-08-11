@@ -1,11 +1,12 @@
-#include <Adafruit_NeoPixel.h>
+#include "LedStrip.h"
 
-#define RPM_PIN        2    //Tachometer signal
-#define LEDSTRIP_PIN   9    //Digital output to led strip
-#define NUMPIXELS     10    //qty of leds in strip
-#define TUNE_PIN      A0    //Tuning potentiometer PIN
+#define RPM_PIN       2         //Tachometer signal
+#define LEDSTRIP_PIN  9         //Digital output to led strip
+#define NUMPIXELS     9         //qty of leds in strip
+#define TUNE_PIN      A0        //Tuning potentiometer PIN
+#define P_RANGE       3500      //Threshold to switch color of indication
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
+LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
 long microsPrev = 0;
 double rpmCur = 0;
@@ -15,6 +16,9 @@ int spikesCounter = 0;
 bool blinkState = false;
 long blinkLastTime = 0;
 
+uint32_t colorIdle = pixels.Color(150, 0, 0);             //Red
+uint32_t colorPerformance = pixels.Color(0, 150, 0);      //Green
+uint32_t colorShift = pixels.Color(150, 150, 150);        //White
 
 void setup() { 
   Serial.begin(9600);
@@ -23,7 +27,7 @@ void setup() {
   attachInterrupt(0, getRpm, RISING);
 
   pixels.begin();
-  piu();
+  pixels.piu();
 }
 
 
@@ -37,7 +41,7 @@ void loop()
   }
   else
   {
-    piu();
+    pixels.piu();
   }
 }
 
@@ -54,49 +58,19 @@ int getShiftThreshold()                                         //Function check
   return map(sensorValue, 0, 1023, 3000, 9000);
 }
 
-void leds(int count)                                              //Function activates/deactivates XX number of leds in the strip
-{
-  int red = 150;
-  int green = 150;
-  int blue = 0;
-
-  if (count > NUMPIXELS * 2 / 3) {                                 //Performance range mode
-    red = 0;
-    blue = 0;
-    green = 150;
-  }
-
-  if (count == NUMPIXELS) {                                         //Shift-light mode
-    red = 0;
-    blue = 150;
-    green = 0;
-  }
-  
-  for (int i = 0; i < NUMPIXELS; i++)                             
-  {
-    if (i > count) 
-    {
-      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-    }
-    else
-    {
-      pixels.setPixelColor(i, pixels.Color(red, green, blue));
-    }
-  }
-  pixels.show();
-}
-
 void showRpm(double rpm, int shiftRpm)                          //Activates indicator based on current rpm and shift limit
 {
+    uint32_t color = (rpm > P_RANGE) ? colorPerformance : colorIdle;
+    
     if (rpm >= shiftRpm && (millis() - blinkLastTime) > 40)     //Shift light blinks every 40 milliseconds
     {
       if (!blinkState)
       {
-        leds(NUMPIXELS);                                         //Start with all leds ON
+        pixels.pixels(NUMPIXELS, colorShift);                                         //Start with all leds ON
       }
       else 
       {
-        leds(0);
+        pixels.pixels(0, colorShift);
       }
       blinkLastTime = millis();
       blinkState = !blinkState;
@@ -104,7 +78,7 @@ void showRpm(double rpm, int shiftRpm)                          //Activates indi
     else if (rpm < shiftRpm)                          //Indicate current engine speed with leds strip
     {    
       int count = (int)rpm / (shiftRpm / NUMPIXELS);   //Count how many leds to activate
-      leds(count);
+      pixels.pixels(count, color);
       blinkState = false;                             //Next time to start shift blinking with leds ON
     }
 }
@@ -146,17 +120,4 @@ void getRpm()
   //Serial.println(rpm);
   
 }
-
-void piu(){
-  for (int i = 0; i <= NUMPIXELS; i++)                             
-  {
-      pixels.setPixelColor(i, pixels.Color(150, 150, 150));
-      pixels.setPixelColor(i-1, pixels.Color(0, 0, 0));
-      delay(10);
-      pixels.show();
-  }
-  
-  delay(1000);
-}
-
 
