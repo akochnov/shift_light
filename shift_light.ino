@@ -1,24 +1,32 @@
 #include "LedStrip.h"
 
-#define RPM_PIN       2         //Tachometer signal
-#define LEDSTRIP_PIN  9         //Digital output to led strip
-#define NUMPIXELS     9         //qty of leds in strip
-#define TUNE_PIN      A0        //Tuning potentiometer PIN
-#define P_RANGE       3500      //Threshold to switch color of indication
+#define DELIMITER       2         //BMW = 2
+#define NUMPIXELS       9         //qty of leds in strip
+#define REV_MIN         0      //Minimal speed to consider
+#define REV_PERF        5500      //Threshold to switch color of indication
+#define REV_SHIFT       6500      //Threshold to shift-light
+#define RPM_PIN         2         //Tachometer signal
+#define LEDSTRIP_PIN    9         //Digital output to led strip
 
 LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
-long microsPrev = 0;
-double rpmCur = 0;
-double rpmPrev = 0;
+//Coloring globals                         (R)  (G)  (B)
+uint32_t colorIdle =          pixels.Color(150, 0,   0);          //Red
+uint32_t colorPerformance =   pixels.Color(0,   150, 0);          //Green
+uint32_t colorShift =         pixels.Color(150, 150, 150);        //White
+
+//Speed globals
+long prevMicros = 0;          //micros() When last time speed was measured
+double curSpeed = 0;          
+double prevSpeed = 0;
+
+//Speed spikes catcher globals
 int spikesCounter = 0;
 
-bool blinkState = false;
+//Shift Light blinker globals
+bool lightOn = false;
 long blinkLastTime = 0;
 
-uint32_t colorIdle = pixels.Color(150, 0, 0);             //Red
-uint32_t colorPerformance = pixels.Color(0, 150, 0);      //Green
-uint32_t colorShift = pixels.Color(150, 150, 150);        //White
 
 void setup() { 
   Serial.begin(9600);
@@ -30,56 +38,47 @@ void setup() {
   pixels.piu();
 }
 
-
 void loop() 
 {
-  int shiftRpm = getShiftThreshold();                           //Read potentiometer to define current shift threshhold
-  Serial.println(rpmCur);
-  if (idle())
+  Serial.println(curSpeed);
+  
+  if (engineRunning())
   {
-    showRpm(rpmCur, shiftRpm);
+    if (curSpeed >= REV_SHIFT){
+      shiftLight();
+    } else { 
+      indicateRpm(curSpeed);
+    }
   }
   else
   {
     pixels.piu();
+    delay(1000);
   }
 }
 
-bool idle()
+bool engineRunning()
 {
-  Serial.println((micros() - microsPrev));
-  return ((micros() - microsPrev) < 100000);                       //Returns true if engine is running
+  //Serial.println((micros() - prevMicros));
+  return ((micros() - prevMicros) < 500000);                       //Returns true if engine is running
 }
 
-int getShiftThreshold()                                         //Function checks the potentiometer input and converts it to rev/minute (3000 - 9000)
+void indicateRpm(double rpm)
 {
-  int sensorValue = analogRead(TUNE_PIN);
-  sensorValue = constrain(sensorValue, 0, 1023);
-  return map(sensorValue, 0, 1023, 3000, 9000);
+  uint32_t color = (rpm > REV_PERF) ? colorPerformance : colorIdle;               //Which color to use
+  int countPixels = (rpm < REV_MIN) ? 0 : ((int)rpm - REV_MIN) / ((REV_SHIFT - REV_MIN) / pixels.numPixels());        //How many leds to activate
+  pixels.pixels(countPixels, color);                                              //Light LEDs
+  lightOn = false;                                                                //Next time to start shift blinking with leds ON
 }
 
-void showRpm(double rpm, int shiftRpm)                          //Activates indicator based on current rpm and shift limit
+void shiftLight()                           
 {
-    uint32_t color = (rpm > P_RANGE) ? colorPerformance : colorIdle;
-    
-    if (rpm >= shiftRpm && (millis() - blinkLastTime) > 40)     //Shift light blinks every 40 milliseconds
+    if ((millis() - blinkLastTime) > 40)    //Shift light blinks every 40 milliseconds
     {
-      if (!blinkState)
-      {
-        pixels.pixels(NUMPIXELS, colorShift);                                         //Start with all leds ON
-      }
-      else 
-      {
-        pixels.pixels(0, colorShift);
-      }
+      int countPixels = (!lightOn) ? pixels.numPixels() : 0;
+      pixels.pixels(countPixels, colorShift);
       blinkLastTime = millis();
-      blinkState = !blinkState;
-    }
-    else if (rpm < shiftRpm)                          //Indicate current engine speed with leds strip
-    {    
-      int count = (int)rpm / (shiftRpm / NUMPIXELS);   //Count how many leds to activate
-      pixels.pixels(count, color);
-      blinkState = false;                             //Next time to start shift blinking with leds ON
+      lightOn = !lightOn;
     }
 }
 
@@ -94,16 +93,15 @@ void getRpm()
 {
   const int maxSpikes = 5;                   
   
-  rpmCur = (1000000.0/(micros() - microsPrev))*60 / 2;
+  curSpeed = (1000000.0/(micros() - prevMicros))*60 / DELIMITER;
   
   //Catch spikes
-  bool isSpike = checkForSpike(rpmCur, rpmPrev);
-  if (isSpike) 
+  if (checkForSpike(curSpeed, prevSpeed)) 
   {
-    if (spikesCounter < maxSpikes)           //More than (qty = maxSpikes) in a row considered as good value
+    if (spikesCounter < maxSpikes)                    //More than (qty = maxSpikes) in a row considered as good value
     {
       spikesCounter++;
-      rpmCur = rpmPrev;                              //Take previous rpm value in case spike is detected
+      curSpeed = prevSpeed;                              //Take previous rpm value in case spike is detected
     }
     else
     {
@@ -115,9 +113,7 @@ void getRpm()
     spikesCounter = 0;
   }
   
-  microsPrev = micros();
-  rpmPrev = rpmCur;
-  //Serial.println(rpm);
-  
+  prevMicros = micros();
+  prevSpeed = curSpeed;
 }
 
