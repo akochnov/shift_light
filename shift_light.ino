@@ -1,17 +1,20 @@
 #include "LedStrip.h"
+#include "Button.h"
 
-#define DELIMITER       2         //BMW = 2
-#define NUMPIXELS       9         //qty of leds in strip
+#define DELIMITER       2         // = 2
+#define NUMPIXELS       10         //qty of leds in strip
 #define REV_MIN         0      //Minimal speed to consider
-#define REV_PERF        5500      //Threshold to switch color of indication
-#define REV_SHIFT       6500      //Threshold to shift-light
+#define REV_PERF        4800      //Threshold to switch color of indication
+#define REV_SHIFT       6850      //Threshold to shift-light
 #define RPM_PIN         2         //Tachometer signal
 #define LEDSTRIP_PIN    9         //Digital output to led strip
 
 LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
+Button modeButton = Button(5);
+ModeSwitch mSw = ModeSwitch(0);
 
 //Coloring globals                         (R)  (G)  (B)
-uint32_t colorIdle =          pixels.Color(150, 0,   0);          //Red
+uint32_t colorIdle =          pixels.Color(150, 100,   0);          //Red
 uint32_t colorPerformance =   pixels.Color(0,   150, 0);          //Green
 uint32_t colorShift =         pixels.Color(150, 150, 150);        //White
 
@@ -27,21 +30,33 @@ int spikesCounter = 0;
 bool lightOn = false;
 long blinkLastTime = 0;
 
-
 void setup() { 
   Serial.begin(9600);
 
   digitalWrite(RPM_PIN, 1);
   attachInterrupt(0, getRpm, RISING);
 
+  //pixels.setBrightness(10);
   pixels.begin();
   pixels.piu();
+  button.process()
+  button.clickHandler(mSw.nextMode);
 }
 
 void loop() 
 {
   Serial.println(curSpeed);
+/*
+  for (int i = 0; i <= 100; i++){
+    pixels.showPercent(i);
+    delay(10);
+  }
   
+  for (int i = 100; i >= 0; i--){
+    pixels.showPercent(i);
+    delay(10);
+  }
+*/
   if (engineRunning())
   {
     if (curSpeed >= REV_SHIFT){
@@ -52,9 +67,15 @@ void loop()
   }
   else
   {
-    pixels.piu();
-    delay(1000);
+    if (button.isPressed()){
+      pixels.piu();
+      delay(1000);
+    }
   }
+}
+
+void onClick(Button& b){
+  
 }
 
 bool engineRunning()
