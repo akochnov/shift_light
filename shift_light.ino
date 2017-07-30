@@ -1,19 +1,24 @@
 #include "LedStrip.h"
 
 #define DELIMITER       2         //BMW = 2
-#define NUMPIXELS       10        //qty of leds in strip
-#define REV_MIN         3000         //Minimal speed to consider
-#define REV_PERF        4800      //Threshold to switch color of indication
-#define REV_SHIFT       7300      //Threshold to shift-light
-#define RPM_PIN         2         //Tachometer signal
+#define NUMPIXELS       7         //qty of LEDs
+#define REV_MIN         3000      //Tachometer minimal rpm
+#define REV_PERF        4800      //Color indication change threshold
+#define REV_SHIFT       7300      //Shift-light RPM
+#define RPM_PIN         2         //Tachometer signal pin
 #define LEDSTRIP_PIN    9         //Digital output to led strip
+#define TACHO_STYLE     1         //  0 = linear; 1 = Side-to-center
+
+#define MAX_SPIKES      5
+#define BENCHMODE       1         //Run without external RPM source
+
 
 LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
-//Coloring globals                         (R)  (G)  (B)
-uint32_t colorIdle =          pixels.Color(150, 100,   0);          //Red
-uint32_t colorPerformance =   pixels.Color(0,   150, 0);          //Green
-uint32_t colorShift =         pixels.Color(150, 150, 150);        //White
+//Coloring globals                         (R)      (G)     (B)
+uint32_t colorIdle =          pixels.Color(150,     100,    0);          //Yellow
+uint32_t colorPerformance =   pixels.Color(0,       150,    0);          //Green
+uint32_t colorShift =         pixels.Color(150,     150,    150);        //White
 
 //Speed globals
 long prevMicros = 0;          //micros() When last time speed was measured
@@ -27,6 +32,11 @@ int spikesCounter = 0;
 bool lightOn = false;
 long blinkLastTime = 0;
 
+//Variables for engine rpm simulation
+unsigned int rpm = 3000;
+unsigned long lastRpmChangedMillis = 0;
+int rpmIncrement = 20;
+
 
 void setup() { 
   Serial.begin(9600);
@@ -38,32 +48,60 @@ void setup() {
   pixels.piu();
 }
 
+
+//
+//  Main loop here
+//
 void loop() 
 {
   Serial.println(curSpeed);
+
+  //Engine simulation
+  if (BENCHMODE == 1) 
+  {
+    simulateEngine();
+  }
   
-  if (engineRunning())
+  if (engineRunning() && curSpeed < REV_SHIFT) 
   {
-    if (curSpeed >= REV_SHIFT){
-      shiftLight();
-    } else { 
-      indicateRpm(curSpeed);
-    }
+    if (TACHO_STYLE == 0) indicateRpm(curSpeed);
+    if (TACHO_STYLE == 1) indicateRpm2(curSpeed);
   }
-  else
-  {
-    //pixels.piu();
-    //delay(1000);
-  }
+  if (engineRunning() && curSpeed >= REV_SHIFT) shiftLight();
 }
 
+
+//
+//  For BENCHMODE = 1 simulation of engine running for
+//
+void simulateEngine()
+{
+    if ((millis() - lastRpmChangedMillis) > 15)
+    {
+      rpm = rpm + rpmIncrement;
+      if (rpm > 7700 || rpm < 3000) rpmIncrement = -rpmIncrement;
+      lastRpmChangedMillis = millis();
+      curSpeed = rpm;
+    }
+}
+
+
+//
+//  Function determins if engine is currently running or not
+//
 bool engineRunning()
 {
   //Serial.println((micros() - prevMicros));
+  if (BENCHMODE == 1) return true;
   return ((micros() - prevMicros) < 500000);                       //Returns true if engine is running
 }
 
-void indicateRpm(double rpm)
+
+
+//
+//  Linear indication of rpm
+//
+void indicateRpm(double rpm)            
 {
   uint32_t color = (rpm > REV_PERF) ? colorPerformance : colorIdle;               //Which color to use
   int countPixels = (rpm < REV_MIN) ? 0 : ((int)rpm - REV_MIN) / ((REV_SHIFT - REV_MIN) / pixels.numPixels());        //How many leds to activate
@@ -71,6 +109,27 @@ void indicateRpm(double rpm)
   lightOn = false;                                                                //Next time to start shift blinking with leds ON
 }
 
+
+
+//
+//  RPM Indication from side to center
+//
+void indicateRpm2(unsigned int rpm)
+{
+  uint32_t color = (rpm > REV_PERF) ? colorPerformance : colorIdle;               //Which color to use
+  byte n;
+  if (pixels.numPixels() % 2 > 0)          //in case odd qty of pixels
+    n = (pixels.numPixels() / 2) + 1;
+  else
+    n = pixels.numPixels() / 2;          //case even qty of pixels
+  
+  pixels.pixels2(pixels.rpmToPixelsQty(n, rpm, REV_MIN, REV_SHIFT - 300), color);
+}
+
+
+//
+//  Shift light blinker
+//
 void shiftLight()                           
 {
     if ((millis() - blinkLastTime) > 40)    //Shift light blinks every 40 milliseconds
@@ -82,26 +141,29 @@ void shiftLight()
     }
 }
 
-bool checkForSpike(double rpm1, double rpm2)          //Helper function to define spike (noise) between two rpm measurements
+//
+//  Function determines if measured speed is spike or not
+//
+bool isSpike(double rpm1, double rpm2)          //Helper function to define spike (noise) between two rpm measurements
 {
-  const int spikeThreshold = 200;                     //200 rev/minute is defined as a spike
-  
+  const int spikeThreshold = 200;              //200 rev/minute is defined as a spike
   return abs(rpm1 - rpm2) > spikeThreshold;
 }
 
+//
+//  Function is assigned to interruption on tacho PIN (rising). Function is counting engine rpm.
+//
 void getRpm()
 {
-  const int maxSpikes = 5;                   
-  
   curSpeed = (1000000.0/(micros() - prevMicros))*60 / DELIMITER;
   
   //Catch spikes
-  if (checkForSpike(curSpeed, prevSpeed)) 
+  if (isSpike(curSpeed, prevSpeed)) 
   {
-    if (spikesCounter < maxSpikes)                    //More than (qty = maxSpikes) in a row considered as good value
+    if (spikesCounter < MAX_SPIKES)                    //Several spikes in a row considered as good value
     {
       spikesCounter++;
-      curSpeed = prevSpeed;                              //Take previous rpm value in case spike is detected
+      curSpeed = prevSpeed;                           //Take previous rpm value in case spike is detected
     }
     else
     {

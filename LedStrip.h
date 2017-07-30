@@ -12,7 +12,8 @@ class LedStrip : public Adafruit_NeoPixel
     void piu();
     int test();
     void pixels(int n, uint32_t c);
-
+    void pixels2(int n, uint32_t c);
+    uint16_t LedStrip::rpmToPixelsQty(uint16_t qtyPixels, unsigned int rpm, unsigned int minRpm, unsigned int maxRpm);
 };
 
 #endif
