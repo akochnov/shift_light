@@ -1,22 +1,23 @@
 #include "LedStrip.h"
 
 #define DELIMITER       2         //BMW = 2
-#define NUMPIXELS       7         //qty of LEDs
-#define REV_MIN         3000      //Tachometer minimal rpm
-#define REV_PERF        4800      //Color indication change threshold
-#define REV_SHIFT       7300      //Shift-light RPM
+#define NUMPIXELS       10         //qty of LEDs
+#define REV_MIN         3800      //Tachometer minimal rpm
+#define REV_PERF        5000      //Color indication change threshold
+#define REV_SHIFT       7100      //Shift-light RPM
 #define RPM_PIN         2         //Tachometer signal pin
-#define LEDSTRIP_PIN    9         //Digital output to led strip
-#define TACHO_STYLE     1         //  0 = linear; 1 = Side-to-center
+#define DIM_PIN         8         //Dimmer +12v
+#define LEDSTRIP_PIN    10         //Digital output to led strip
+#define TACHO_STYLE     0         //  0 = linear; 1 = Side-to-center
 
 #define MAX_SPIKES      5
-#define BENCHMODE       1         //Run without external RPM source
+#define BENCHMODE       false         //Run without external RPM source
 
 
 LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
-//Coloring globals                         (R)      (G)     (B)
-uint32_t colorIdle =          pixels.Color(150,     100,    0);          //Yellow
+//Coloring globals                t         (R)      (G)     (B)
+uint32_t colorIdle =          pixels.Color(150,     80,    0);          //Amber
 uint32_t colorPerformance =   pixels.Color(0,       150,    0);          //Green
 uint32_t colorShift =         pixels.Color(150,     150,    150);        //White
 
@@ -37,15 +38,21 @@ unsigned int rpm = 3000;
 unsigned long lastRpmChangedMillis = 0;
 int rpmIncrement = 20;
 
+int dim = 0;
 
 void setup() { 
   Serial.begin(9600);
 
+  pinMode(DIM_PIN, INPUT);
+  pinMode(13, OUTPUT);
+  
   digitalWrite(RPM_PIN, 1);
-  attachInterrupt(0, getRpm, RISING);
+  attachInterrupt(digitalPinToInterrupt(RPM_PIN), getRpm, RISING);
 
   pixels.begin();
   pixels.piu();
+  
+  delay(500);
 }
 
 
@@ -55,12 +62,17 @@ void setup() {
 void loop() 
 {
   Serial.println(curSpeed);
-
+  
+  dim = digitalRead(DIM_PIN);     // read the input pin
+  if (dim == 1) pixels.setBrightness(50);
+  else pixels.setBrightness(255);
+  //Serial.println(dim);
+  digitalWrite(13, dim);    // sets the LED to the button's value
+  
   //Engine simulation
-  if (BENCHMODE == 1) 
-  {
-    simulateEngine();
-  }
+  if (BENCHMODE) simulateEngine();
+
+  if (!engineRunning()) indicateRpm(0);
   
   if (engineRunning() && curSpeed < REV_SHIFT) 
   {
@@ -92,7 +104,7 @@ void simulateEngine()
 bool engineRunning()
 {
   //Serial.println((micros() - prevMicros));
-  if (BENCHMODE == 1) return true;
+  if (BENCHMODE) return true;
   return ((micros() - prevMicros) < 500000);                       //Returns true if engine is running
 }
 
@@ -151,7 +163,7 @@ bool isSpike(double rpm1, double rpm2)          //Helper function to define spik
 }
 
 //
-//  Function is assigned to interruption on tacho PIN (rising). Function is counting engine rpm.
+//  Function is assigned to interruption on tacho PIN (rising). Calculates engine rpm.
 //
 void getRpm()
 {
