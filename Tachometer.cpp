@@ -17,7 +17,7 @@ bool Tachometer::isSpike(double rpm1, double rpm2)          //Spike of more than
 
 void Tachometer::processInterrupt()
 {
-  curSpeed = (1000000.0/(micros() - prevMicros))*60 / DELIMITER;
+  curSpeed = (1000000.0/(micros() - prevMicros))*60 / 2; ///delimeter to be added here
   
   //Catch spikes
   if (isSpike(curSpeed, prevSpeed)) 
