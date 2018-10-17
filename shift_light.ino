@@ -1,13 +1,13 @@
 #include "LedStrip.h"
 
-#define DELIMITER       2         //BMW = 2
-#define NUMPIXELS       10         //qty of LEDs
-#define REV_MIN         3800      //Tachometer minimal rpm
-#define REV_PERF        5000      //Color indication change threshold
-#define REV_SHIFT       7100      //Shift-light RPM
+#define DELIMITER       2         //
+#define NUMPIXELS       10        //qty of LEDs
+#define REV_MIN         3000      //Tachometer minimal rpm
+#define REV_PERF        3300      //Color indication change threshold
+#define REV_SHIFT       4700      //Shift-light RPM
 #define RPM_PIN         2         //Tachometer signal pin
 #define DIM_PIN         8         //Dimmer +12v
-#define LEDSTRIP_PIN    10         //Digital output to led strip
+#define LEDSTRIP_PIN    10        //Digital output to led strip
 #define TACHO_STYLE     0         //  0 = linear; 1 = Side-to-center
 
 #define MAX_SPIKES      5
@@ -17,7 +17,7 @@
 LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
 //Coloring globals                t         (R)      (G)     (B)
-uint32_t colorIdle =          pixels.Color(150,     80,    0);          //Amber
+uint32_t colorIdle =          pixels.Color(150,     50,    0);          //Amber
 uint32_t colorPerformance =   pixels.Color(0,       150,    0);          //Green
 uint32_t colorShift =         pixels.Color(150,     150,    150);        //White
 
@@ -147,6 +147,11 @@ void shiftLight()
     if ((millis() - blinkLastTime) > 40)    //Shift light blinks every 40 milliseconds
     {
       int countPixels = (!lightOn) ? pixels.numPixels() : 0;
+
+//Timofey non-blinking shift-light
+      countPixels = pixels.numPixels();
+//End
+
       pixels.pixels(countPixels, colorShift);
       blinkLastTime = millis();
       lightOn = !lightOn;
