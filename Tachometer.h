@@ -7,26 +7,26 @@
 class Tachometer
 {
   public:
-    Tachometer(uint8_t delimeter = 2);
+    Tachometer(uint8_t spikesAllowed, uint8_t pulsesPerRevolution);
     double getEngineSpeed();
     void processInterrupt();
     
   private:
-    //Speed globals
-    long prevMicros = 0;          //micros() When last time speed was measured
-    double curSpeed = 0;          
-    double prevSpeed = 0;
+    //Settings
+    uint8_t _delimeter;
+    
+    //RPM calculation related
+    long _lastInterruptTime;                     //Last interruption time
+    double _rpm;                     //Current RPM value
+    double _prevRpm;                    //Previous RPM value
     
     //Speed spikes catcher globals
-    int spikesCounter = 0;
-
-    //Variables for engine rpm simulation
-    unsigned int rpm = 3000;
-    unsigned long lastRpmChangedMillis = 0;
-    int rpmIncrement = 20;
+    uint8_t _maxSpikes;
+    uint8_t _spikesCounter;
     
     //Helper methods
     bool isSpike(double rpm1, double rpm2);
+    bool isRunning();
 
 };
 

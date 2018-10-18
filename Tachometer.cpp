@@ -1,43 +1,59 @@
 #include "Tachometer.h"
 
-Tachometer::Tachometer(uint8_t delimeter = 2)
+Tachometer::Tachometer(uint8_t spikesAllowed = 5, uint8_t pulsesPerRevolution = 2)
 {
-  //TODO variable delimeters
+  _delimeter = pulsesPerRevolution;
+  _lastInterruptTime = 0;
+  _rpm = 0;          
+  _prevRpm = 0;
+
+  _maxSpikes = spikesAllowed;
+  _spikesCounter = 0;
 }
+
+bool Tachometer::isRunning()
+{
+  return ((micros() - _lastInterruptTime) < 500000);                       //Returns true if engine is running
+}
+
 
 double Tachometer::getEngineSpeed()
 {
-  return curSpeed;
+  if (!isRunning()) _rpm = 0;
+  
+  return _rpm;
 }
+
 
 bool Tachometer::isSpike(double rpm1, double rpm2)          //Spike of more than 200 rev/min defined as noise signal
 {
   return abs(rpm1 - rpm2) > 200;                 
 }
 
+
 void Tachometer::processInterrupt()
 {
-  curSpeed = (1000000.0/(micros() - prevMicros))*60 / 2; ///delimeter to be added here
+  _rpm = (1000000.0/(micros() - _lastInterruptTime))*60 / 2;  ///delimeter to be added here
   
-  //Catch spikes
-  if (isSpike(curSpeed, prevSpeed)) 
+  //Catch noise values
+  if (isSpike(_rpm, _prevRpm)) 
   {
-    if (spikesCounter < MAX_SPIKES)                    //Several spikes in a row considered as good value
+    if (_spikesCounter < 5)                            //5 spikes in a row considered as good value
     {
-      spikesCounter++;
-      curSpeed = prevSpeed;                           //Take previous rpm value in case spike is detected
+      _spikesCounter++;
+      _rpm = _prevRpm;                           //Take previous rpm value in case spike is detected
     }
     else
     {
-      spikesCounter = 0;
+      _spikesCounter = 0;
     }
   }
   else
   {
-    spikesCounter = 0;
+    _spikesCounter = 0;
   }
   
-  prevMicros = micros();
-  prevSpeed = curSpeed;
+  _lastInterruptTime = micros();
+  _prevRpm = _rpm;
 }
 
