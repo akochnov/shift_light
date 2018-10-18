@@ -50,7 +50,7 @@ void setup() {
 //
 void loop() 
 {
-  double rpm;
+  long rpm;
 
   if (!BENCHMODE)
   {

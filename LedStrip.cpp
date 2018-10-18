@@ -2,7 +2,7 @@
 
 void LedStrip::piu()
 {
-  for (int i = 0; i <= Adafruit_NeoPixel::numPixels(); i++)                             
+  for (int i = 0; i <= Adafruit_NeoPixel::numPixels(); i++)
   {
       Adafruit_NeoPixel::setPixelColor(i, Adafruit_NeoPixel::Color(150, 150, 150));
       Adafruit_NeoPixel::setPixelColor(i-1, Adafruit_NeoPixel::Color(0, 0, 0));

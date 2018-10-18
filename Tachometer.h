@@ -8,7 +8,7 @@ class Tachometer
 {
   public:
     Tachometer(uint8_t spikesAllowed, uint8_t pulsesPerRevolution);
-    double getEngineSpeed();
+    long getEngineSpeed();
     void processInterrupt();
     
   private:
@@ -17,8 +17,8 @@ class Tachometer
     
     //RPM calculation related
     long _lastInterruptTime;                     //Last interruption time
-    double _rpm;                     //Current RPM value
-    double _prevRpm;                    //Previous RPM value
+    long _rpm;                     //Current RPM value
+    long _prevRpm;                    //Previous RPM value
     
     //Speed spikes catcher globals
     uint8_t _maxSpikes;

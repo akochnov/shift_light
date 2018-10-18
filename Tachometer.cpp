@@ -17,7 +17,7 @@ bool Tachometer::isRunning()
 }
 
 
-double Tachometer::getEngineSpeed()
+long Tachometer::getEngineSpeed()
 {
   if (!isRunning()) _rpm = 0;
   
@@ -33,7 +33,7 @@ bool Tachometer::isSpike(double rpm1, double rpm2)          //Spike of more than
 
 void Tachometer::processInterrupt()
 {
-  _rpm = (1000000.0/(micros() - _lastInterruptTime))*60 / 2;  ///delimeter to be added here
+  _rpm = (long)(1000000.0/(micros() - _lastInterruptTime))*60 / 2;  ///delimeter to be added here
   
   //Catch noise values
   if (isSpike(_rpm, _prevRpm)) 
