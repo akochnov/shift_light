@@ -11,10 +11,14 @@ Tachometer::Tachometer(uint8_t spikesAllowed = 5, uint8_t pulsesPerRevolution = 
   _spikesCounter = 0;
 }
 
+
+
 bool Tachometer::isRunning()
 {
   return ((micros() - _lastInterruptTime) < 500000);                       //Returns true if engine is running
 }
+
+
 
 
 uint16_t Tachometer::getEngineSpeed()
@@ -25,33 +29,31 @@ uint16_t Tachometer::getEngineSpeed()
 }
 
 
+
+
 bool Tachometer::isSpike(uint16_t rpm1, uint16_t rpm2)          //Spike of more than 200 rev/min defined as noise signal
 {
   return abs(rpm1 - rpm2) > 200;                 
 }
 
 
+
+
 void Tachometer::processInterrupt()
 {
-  _rpm = (uint16_t)(1000000.0/(micros() - _lastInterruptTime))*60 / 2;  ///delimeter to be added here
+  _rpm = (uint16_t)(1000000/(micros() - _lastInterruptTime))*60 / _delimeter;  
   
   //Catch noise values
-  if (isSpike(_rpm, _prevRpm)) 
+  if (isSpike(_rpm, _prevRpm) && _spikesCounter < 5) 
   {
-    if (_spikesCounter < 5)                            //5 spikes in a row considered as good value
-    {
-      _spikesCounter++;
-      _rpm = _prevRpm;                           //Take previous rpm value in case spike is detected
-    }
-    else
-    {
-      _spikesCounter = 0;
-    }
+    _spikesCounter++;
+    _rpm = _prevRpm;                           //Take previous rpm value in case spike is detected
   }
   else
   {
     _spikesCounter = 0;
   }
+
   
   _lastInterruptTime = micros();
   _prevRpm = _rpm;

@@ -1,46 +1,56 @@
-#include "Indicator.h"
 #include "Tachometer.h"
 #include "EngineSimulator.h"
+#include "Indicator.h"
 #include <Adafruit_NeoPixel.h>
 
-#define DELIMITER       2         //Pulses per revolution
-#define NUMPIXELS       12        //qty of LEDs
-#define REV_MIN         3000      //Tachometer minimal rpm
-#define REV_PERF        3300      //Color indication change threshold
-#define REV_SHIFT       4700      //Shift-light RPM
-#define RPM_PIN         2         //Tachometer signal pin
-#define DIM_PIN         8         //Dimmer +12v
-#define LEDSTRIP_PIN    10        //Digital output to led strip
-#define TACHO_STYLE     0         //  0 = linear; 1 = Side-to-center
-
-#define MAX_SPIKES      5
-#define BENCHMODE       false         //Run without external RPM source
+#define REV_MIN             3000      //Tachometer minimal rpm
+#define REV_PERF            3300      //Color indication change threshold
+#define REV_SHIFT           4700      //Shift-light RPM
 
 //Coloring                               t                     (R)      (G)     (B)
 uint32_t const COLOR_IDLE = Adafruit_NeoPixel::Color          (150,     50,     0);          //Amber
 uint32_t const COLOR_PERFORMANCE = Adafruit_NeoPixel::Color   (0,       150,    0);          //Green
 uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    150);        //White
 
-Tachometer tacho = Tachometer(MAX_SPIKES, DELIMITER);
-EngineSimulator simulator = EngineSimulator();
+#define TACHO_STYLE         0         //  0 = linear; 1 = Side-to-center
+#define PPR                 2         //Pulses per revolution
+#define MAX_SPIKES          10
+#define SMOOTHING_FILTER    10
+
+#define NUMPIXELS           10        //qty of LEDs
+#define LEDSTRIP_PIN        10        //Digital output to led strip
+#define RPM_PIN             2         //Tachometer signal pin
+#define DIM_PIN             8         // not in use
+
+#define DEBUG               true
+#define BENCHMODE           false     //Activates simulator
+
+
+Tachometer tacho = Tachometer(MAX_SPIKES, PPR);
+
+EngineSimulator simulator = EngineSimulator(2000, 6200);
 
 Indicator indicator = Indicator(NUMPIXELS, LEDSTRIP_PIN);
-
 
 //
 //  Setup
 //
 void setup() { 
-  Serial.begin(9600);
+  if (DEBUG) Serial.begin(9600);
 
   digitalWrite(RPM_PIN, 1);
   attachInterrupt(digitalPinToInterrupt(RPM_PIN), getRpm, RISING);
 
   indicator.setColors(COLOR_IDLE, COLOR_PERFORMANCE, COLOR_SHIFT);
   indicator.setResolution(REV_MIN, REV_PERF, REV_SHIFT);
+  indicator.setSmoothingFilter(SMOOTHING_FILTER);
   indicator.piu();
+  
   delay(500);
 }
+
+
+
 
 //
 //  Main loop
@@ -50,22 +60,21 @@ void loop()
   long rpm;
 
   if (!BENCHMODE)
-  {
     rpm = tacho.getEngineSpeed();
-  }
   else
-  {
     rpm = simulator.simulateEngine();
-  }
     
-  Serial.println(rpm);
+  if (DEBUG) Serial.println(rpm);
 
-  indicator.showRpm(rpm);
+  indicator.showRpm(rpm, TACHO_STYLE);
 }
 
 
+
+
+
 //
-//  Function is assigned to interruption on tacho PIN (rising)
+//  Function assigned to interruption (rising)
 //
 void getRpm()
 {
