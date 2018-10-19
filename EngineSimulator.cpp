@@ -8,7 +8,7 @@ EngineSimulator::EngineSimulator()
 }
 
 
-int EngineSimulator::simulateEngine()
+uint16_t EngineSimulator::simulateEngine()
 {
   if ((millis() - _rpmLastChangeTime) > 15)
   {

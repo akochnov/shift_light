@@ -7,12 +7,12 @@ class EngineSimulator
 {
   public:
     EngineSimulator();
-    int simulateEngine();
+    uint16_t simulateEngine();
     
   private:
-    unsigned int _rpm;
-    unsigned long _rpmLastChangeTime;
-    int _rpmIncrement;
+    uint16_t _rpm;
+    uint32_t _rpmLastChangeTime;
+    uint16_t _rpmIncrement;
 };
 
 #endif

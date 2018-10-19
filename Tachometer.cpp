@@ -17,7 +17,7 @@ bool Tachometer::isRunning()
 }
 
 
-long Tachometer::getEngineSpeed()
+uint16_t Tachometer::getEngineSpeed()
 {
   if (!isRunning()) _rpm = 0;
   
@@ -25,7 +25,7 @@ long Tachometer::getEngineSpeed()
 }
 
 
-bool Tachometer::isSpike(double rpm1, double rpm2)          //Spike of more than 200 rev/min defined as noise signal
+bool Tachometer::isSpike(uint16_t rpm1, uint16_t rpm2)          //Spike of more than 200 rev/min defined as noise signal
 {
   return abs(rpm1 - rpm2) > 200;                 
 }
@@ -33,7 +33,7 @@ bool Tachometer::isSpike(double rpm1, double rpm2)          //Spike of more than
 
 void Tachometer::processInterrupt()
 {
-  _rpm = (long)(1000000.0/(micros() - _lastInterruptTime))*60 / 2;  ///delimeter to be added here
+  _rpm = (uint16_t)(1000000.0/(micros() - _lastInterruptTime))*60 / 2;  ///delimeter to be added here
   
   //Catch noise values
   if (isSpike(_rpm, _prevRpm)) 
