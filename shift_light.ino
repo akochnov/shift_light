@@ -1,10 +1,10 @@
 #include "LedStrip.h"
 
 #define DELIMITER       2         //
-#define NUMPIXELS       10        //qty of LEDs
-#define REV_MIN         3000      //Tachometer minimal rpm
-#define REV_PERF        3300      //Color indication change threshold
-#define REV_SHIFT       4700      //Shift-light RPM
+#define NUMPIXELS       12        //qty of LEDs
+#define REV_MIN         1000      //Tachometer minimal rpm
+#define REV_PERF        2500      //Color indication change threshold
+#define REV_SHIFT       3000      //Shift-light RPM
 #define RPM_PIN         2         //Tachometer signal pin
 #define DIM_PIN         8         //Dimmer +12v
 #define LEDSTRIP_PIN    10        //Digital output to led strip
