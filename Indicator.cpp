@@ -1,6 +1,6 @@
-#include "LedStrip2.h"
+#include "Indicator.h"
 
-LedStrip2::LedStrip2(uint16_t qtyPixels, uint8_t pin)
+Indicator::Indicator(uint16_t qtyPixels, uint8_t pin)
 {
   _pixels = Adafruit_NeoPixel(qtyPixels, pin, NEO_GRB + NEO_KHZ800);
   _pixels.begin();
@@ -11,7 +11,7 @@ LedStrip2::LedStrip2(uint16_t qtyPixels, uint8_t pin)
 
 
 
-void LedStrip2::showRpm(uint16_t rpm)
+void Indicator::showRpm(uint16_t rpm)
 {
   if (rpm > _rpmShift)
   {
@@ -37,7 +37,7 @@ void LedStrip2::showRpm(uint16_t rpm)
 }
 
 
-void LedStrip2::pixels(uint16_t n, uint32_t c)
+void Indicator::pixels(uint16_t n, uint32_t c)
 {
   uint16_t qtyPixels = _pixels.numPixels();
   uint32_t color;
@@ -51,7 +51,7 @@ void LedStrip2::pixels(uint16_t n, uint32_t c)
 }
 
 
-void LedStrip2::shiftLight()                         
+void Indicator::shiftLight()                         
 {
     if ((millis() - _blinkLastTime) > 40)     //Shift light blinks every 40 milliseconds
     {
@@ -64,7 +64,7 @@ void LedStrip2::shiftLight()
 }
 
 
-void LedStrip2::setColors(uint32_t colorIdle, uint32_t colorPerf, uint32_t colorShift)
+void Indicator::setColors(uint32_t colorIdle, uint32_t colorPerf, uint32_t colorShift)
 {
   _colorIdle = colorIdle;
   _colorPerf = colorPerf;
@@ -72,7 +72,7 @@ void LedStrip2::setColors(uint32_t colorIdle, uint32_t colorPerf, uint32_t color
 }
 
 
-void LedStrip2::setResolution(uint16_t rpmMin, uint16_t rpmPerf, uint16_t rpmShift)
+void Indicator::setResolution(uint16_t rpmMin, uint16_t rpmPerf, uint16_t rpmShift)
 {
   _rpmMin = rpmMin;
   Serial.print(_rpmMin);
@@ -86,7 +86,7 @@ void LedStrip2::setResolution(uint16_t rpmMin, uint16_t rpmPerf, uint16_t rpmShi
 }
 
 
-void LedStrip2::piu()
+void Indicator::piu()
 {
   for (uint16_t i = 0; i <= _pixels.numPixels(); i++)
   {

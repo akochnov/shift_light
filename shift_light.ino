@@ -1,4 +1,4 @@
-#include "LedStrip2.h"
+#include "Indicator.h"
 #include "Tachometer.h"
 #include "EngineSimulator.h"
 #include <Adafruit_NeoPixel.h>
@@ -24,7 +24,7 @@ uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    
 Tachometer tacho = Tachometer(MAX_SPIKES, DELIMITER);
 EngineSimulator simulator = EngineSimulator();
 
-LedStrip2 indicator = LedStrip2(NUMPIXELS, LEDSTRIP_PIN);
+Indicator indicator = Indicator(NUMPIXELS, LEDSTRIP_PIN);
 
 
 //

@@ -1,14 +1,14 @@
-#ifndef LedStrip2_h
-#define LedStrip2_h
+#ifndef Indicator_h
+#define Indicator_h
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
 
-class LedStrip2
+class Indicator
 {
   public:
-    LedStrip2(uint16_t qtyPixels, uint8_t pin);
+    Indicator(uint16_t qtyPixels, uint8_t pin);
     void setColors(uint32_t colorIdle, uint32_t colorPerf, uint32_t colorShift);
     void setResolution(uint16_t rpmMin, uint16_t rpmPerf, uint16_t rpmShift);
     
