@@ -1,140 +1,88 @@
-#include "LedStrip.h"
-#include "Button.h"
 
-#define DELIMITER       2         // = 2
-#define NUMPIXELS       10         //qty of leds in strip
-#define REV_MIN         0      //Minimal speed to consider
-#define REV_PERF        4800      //Threshold to switch color of indication
-#define REV_SHIFT       6850      //Threshold to shift-light
-#define RPM_PIN         2         //Tachometer signal
-#define LEDSTRIP_PIN    9         //Digital output to led strip
+#include "Tachometer.h"
+#include "EngineSimulator.h"
+#include "Indicator.h"
+#include <Adafruit_NeoPixel.h>
 
-LedStrip pixels = LedStrip(NUMPIXELS, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
-Button modeButton = Button(5);
-ModeSwitch mSw = ModeSwitch(0);
 
-//Coloring globals                         (R)  (G)  (B)
-uint32_t colorIdle =          pixels.Color(150, 100,   0);          //Red
-uint32_t colorPerformance =   pixels.Color(0,   150, 0);          //Green
-uint32_t colorShift =         pixels.Color(150, 150, 150);        //White
+#define REV_MIN             1000      //Tachometer minimal rpm
+#define REV_PERF            2000      //Color indication change threshold
+#define REV_SHIFT           3000      //Shift-light RPM
 
-//Speed globals
-long prevMicros = 0;          //micros() When last time speed was measured
-double curSpeed = 0;          
-double prevSpeed = 0;
+//Coloring                               t                     (R)      (G)     (B)
+uint32_t const COLOR_IDLE = Adafruit_NeoPixel::Color          (150,     50,     0);          //Amber
+uint32_t const COLOR_PERFORMANCE = Adafruit_NeoPixel::Color   (0,       150,    0);          //Green
+uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    150);        //White
 
-//Speed spikes catcher globals
-int spikesCounter = 0;
+#define TACHO_STYLE         1         //  0 = linear; 1 = Side-to-center
+#define PPR                 2         //Pulses per revolution
+#define MAX_SPIKES          10
+#define SMOOTHING_FILTER    10
 
-//Shift Light blinker globals
-bool lightOn = false;
-long blinkLastTime = 0;
+#define NUMPIXELS           12        //qty of LEDs
+#define LEDSTRIP_PIN        10        //Digital output to led strip
+#define RPM_PIN             2         //Tachometer signal pin
+#define DIM_PIN             8         // not in use
+
+#define DEBUG               true
+#define BENCHMODE           false     //Activates simulator
+
+
+Tachometer tacho = Tachometer(MAX_SPIKES, PPR);
+
+EngineSimulator simulator = EngineSimulator(2000, 6200);
+
+Indicator indicator = Indicator(NUMPIXELS, LEDSTRIP_PIN);
+
+//
+//  Setup
+//
 
 void setup() { 
-  Serial.begin(9600);
+  if (DEBUG) Serial.begin(9600);
 
   digitalWrite(RPM_PIN, 1);
-  attachInterrupt(0, getRpm, RISING);
+  attachInterrupt(digitalPinToInterrupt(RPM_PIN), getRpm, RISING);
 
-  //pixels.setBrightness(10);
-  pixels.begin();
-  pixels.piu();
-  button.process()
-  button.clickHandler(mSw.nextMode);
+  indicator.setColors(COLOR_IDLE, COLOR_PERFORMANCE, COLOR_SHIFT);
+  indicator.setResolution(REV_MIN, REV_PERF, REV_SHIFT);
+  indicator.setSmoothingFilter(SMOOTHING_FILTER);
+  indicator.piu();
+  
+  delay(500);
 }
 
+
+
+
+//
+//  Main loop
+//
 void loop() 
 {
-  Serial.println(curSpeed);
-/*
-  for (int i = 0; i <= 100; i++){
-    pixels.showPercent(i);
-    delay(10);
-  }
-  
-  for (int i = 100; i >= 0; i--){
-    pixels.showPercent(i);
-    delay(10);
-  }
-*/
-  if (engineRunning())
-  {
-    if (curSpeed >= REV_SHIFT){
-      shiftLight();
-    } else { 
-      indicateRpm(curSpeed);
-    }
-  }
+
+  long rpm;
+
+  if (!BENCHMODE)
+    rpm = tacho.getEngineSpeed();
   else
-  {
-    if (button.isPressed()){
-      pixels.piu();
-      delay(1000);
-    }
-  }
+    rpm = simulator.simulateEngine();
+    
+  if (DEBUG) Serial.println(rpm);
+
+  indicator.showRpm(rpm, TACHO_STYLE);
+
 }
 
-void onClick(Button& b){
-  
-}
 
-bool engineRunning()
-{
-  //Serial.println((micros() - prevMicros));
-  return ((micros() - prevMicros) < 500000);                       //Returns true if engine is running
-}
 
-void indicateRpm(double rpm)
-{
-  uint32_t color = (rpm > REV_PERF) ? colorPerformance : colorIdle;               //Which color to use
-  int countPixels = (rpm < REV_MIN) ? 0 : ((int)rpm - REV_MIN) / ((REV_SHIFT - REV_MIN) / pixels.numPixels());        //How many leds to activate
-  pixels.pixels(countPixels, color);                                              //Light LEDs
-  lightOn = false;                                                                //Next time to start shift blinking with leds ON
-}
 
-void shiftLight()                           
-{
-    if ((millis() - blinkLastTime) > 40)    //Shift light blinks every 40 milliseconds
-    {
-      int countPixels = (!lightOn) ? pixels.numPixels() : 0;
-      pixels.pixels(countPixels, colorShift);
-      blinkLastTime = millis();
-      lightOn = !lightOn;
-    }
-}
 
-bool checkForSpike(double rpm1, double rpm2)          //Helper function to define spike (noise) between two rpm measurements
-{
-  const int spikeThreshold = 200;                     //200 rev/minute is defined as a spike
-  
-  return abs(rpm1 - rpm2) > spikeThreshold;
-}
-
+//
+//  Function assigned to interruption (rising)
+//
 void getRpm()
 {
-  const int maxSpikes = 5;                   
-  
-  curSpeed = (1000000.0/(micros() - prevMicros))*60 / DELIMITER;
-  
-  //Catch spikes
-  if (checkForSpike(curSpeed, prevSpeed)) 
-  {
-    if (spikesCounter < maxSpikes)                    //More than (qty = maxSpikes) in a row considered as good value
-    {
-      spikesCounter++;
-      curSpeed = prevSpeed;                              //Take previous rpm value in case spike is detected
-    }
-    else
-    {
-      spikesCounter = 0;
-    }
-  }
-  else
-  {
-    spikesCounter = 0;
-  }
-  
-  prevMicros = micros();
-  prevSpeed = curSpeed;
+  tacho.processInterrupt();
 }
 

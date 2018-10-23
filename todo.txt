@@ -1,3 +1,0 @@
-dimmer
-mode switch
-side-to-center
