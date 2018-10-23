@@ -1,9 +1,7 @@
-
 #include "Tachometer.h"
 #include "EngineSimulator.h"
 #include "Indicator.h"
 #include <Adafruit_NeoPixel.h>
-
 
 #define REV_MIN             1000      //Tachometer minimal rpm
 #define REV_PERF            2000      //Color indication change threshold
@@ -13,6 +11,7 @@
 uint32_t const COLOR_IDLE = Adafruit_NeoPixel::Color          (150,     50,     0);          //Amber
 uint32_t const COLOR_PERFORMANCE = Adafruit_NeoPixel::Color   (0,       150,    0);          //Green
 uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    150);        //White
+
 
 #define TACHO_STYLE         1         //  0 = linear; 1 = Side-to-center
 #define PPR                 2         //Pulses per revolution
