@@ -3,21 +3,21 @@
 #include "Indicator.h"
 #include <Adafruit_NeoPixel.h>
 
-#define REV_MIN             3000      //Tachometer minimal rpm
-#define REV_PERF            3300      //Color indication change threshold
-#define REV_SHIFT           4700      //Shift-light RPM
+#define REV_MIN             1000      //Tachometer minimal rpm
+#define REV_PERF            2000      //Color indication change threshold
+#define REV_SHIFT           3000      //Shift-light RPM
 
 //Coloring                               t                     (R)      (G)     (B)
 uint32_t const COLOR_IDLE = Adafruit_NeoPixel::Color          (150,     50,     0);          //Amber
 uint32_t const COLOR_PERFORMANCE = Adafruit_NeoPixel::Color   (0,       150,    0);          //Green
 uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    150);        //White
 
-#define TACHO_STYLE         0         //  0 = linear; 1 = Side-to-center
+#define TACHO_STYLE         1         //  0 = linear; 1 = Side-to-center
 #define PPR                 2         //Pulses per revolution
 #define MAX_SPIKES          10
 #define SMOOTHING_FILTER    10
 
-#define NUMPIXELS           10        //qty of LEDs
+#define NUMPIXELS           12        //qty of LEDs
 #define LEDSTRIP_PIN        10        //Digital output to led strip
 #define RPM_PIN             2         //Tachometer signal pin
 #define DIM_PIN             8         // not in use
