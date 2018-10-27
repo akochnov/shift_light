@@ -39,7 +39,7 @@ Indicator indicator = Indicator(NUMPIXELS, LEDSTRIP_PIN);
 
 void setup() { 
   if (DEBUG) Serial.begin(9600);
-
+  
   digitalWrite(RPM_PIN, 1);
   attachInterrupt(digitalPinToInterrupt(RPM_PIN), getRpm, RISING);
 
