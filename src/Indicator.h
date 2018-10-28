@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include "DebugMacros.h"
 
 class Indicator
 {

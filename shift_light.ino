@@ -1,6 +1,9 @@
-#include "Tachometer.h"
-#include "EngineSimulator.h"
-#include "Indicator.h"
+#define DEBUG
+#include "src/DebugMacros.h"
+
+#include "src/Tachometer.h"
+#include "src/EngineSimulator.h"
+#include "src/Indicator.h"
 #include <Adafruit_NeoPixel.h>
 
 #define REV_MIN             1000      //Tachometer minimal rpm
@@ -23,7 +26,6 @@ uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    
 #define RPM_PIN             2         //Tachometer signal pin
 #define DIM_PIN             8         // not in use
 
-#define DEBUG               true
 #define BENCHMODE           false     //Activates simulator
 
 
@@ -38,8 +40,8 @@ Indicator indicator = Indicator(NUMPIXELS, LEDSTRIP_PIN);
 //
 
 void setup() { 
-  if (DEBUG) Serial.begin(9600);
-  
+  Serial.begin(9600);
+    
   digitalWrite(RPM_PIN, 1);
   attachInterrupt(digitalPinToInterrupt(RPM_PIN), getRpm, RISING);
 
@@ -67,7 +69,7 @@ void loop()
   else
     rpm = simulator.simulateEngine();
     
-  if (DEBUG) Serial.println(rpm);
+  DEBUG_PRINT(rpm);
 
   indicator.showRpm(rpm, TACHO_STYLE);
 

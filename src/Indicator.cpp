@@ -39,12 +39,12 @@ void Indicator::setResolution(uint16_t rpmMin, uint16_t rpmPerf, uint16_t rpmShi
   _rpmPerf = rpmPerf;
   _rpmShift = rpmShift;
   
-  Serial.print(_rpmMin);
-  Serial.println(" - _rpmMin");
-  Serial.print(_rpmPerf);
-  Serial.println(" - _rpmPerf");
-  Serial.print(_rpmShift);
-  Serial.println(" - _rpmShift");
+  DPRINT(_rpmMin);
+  DPRINTLN(" - _rpmMin");
+  DPRINT(_rpmPerf);
+  DPRINTLN(" - _rpmPerf");
+  DPRINT(_rpmShift);
+  DPRINTLN(" - _rpmShift");
 }
 
 
@@ -133,27 +133,27 @@ uint16_t Indicator::rpmToPixelsQty(uint16_t rpm, uint16_t totalPixels)
     segment = (uint16_t)(_rpmShift - _rpmMin) / totalPixels;
     countPixels = (uint16_t)((rpm - _rpmMin) / segment) + 1;
 /*
-    Serial.print(segment);
-    Serial.print(" - segment, ");
-    Serial.print(countPixels);
-    Serial.print(" - countPixels, ");
-    Serial.print(countPixels * segment + _rpmMin);
-    Serial.print(" - threshold, ");
+    DPRINT(segment);
+    DPRINT(" - segment, ");
+    DPRINT(countPixels);
+    DPRINT(" - countPixels, ");
+    DPRINT(countPixels * segment + _rpmMin);
+    DPRINT(" - threshold, ");
 */
     //Avoid led blinking at boundary values
     //
     if ((countPixels - _oldPixelsCount == 1) && ((countPixels - 1) * segment + _rpmMin + _smoothFilter > rpm))
     {
-//      Serial.print("--");
+//      DPRINT("--");
       countPixels--;
     }
 
     if ((_oldPixelsCount - countPixels == 1) && ((countPixels) * segment + _rpmMin - _smoothFilter < rpm))
     {
       countPixels++;
-//      Serial.print("++");
+//      DPRINT("++");
     }
-//    Serial.println(countPixels);
+//    DPRINTLN(countPixels);
   }
   
   return countPixels;

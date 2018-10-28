@@ -2,7 +2,7 @@
 #define Tachometer_h
 
 #include <Arduino.h>
-
+#include "DebugMacros.h"
 
 class Tachometer
 {
