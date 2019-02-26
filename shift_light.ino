@@ -1,14 +1,16 @@
 #define DEBUG
-#include "src/DebugMacros.h"
 
+#include <Adafruit_NeoPixel.h>
+
+#include "src/DebugMacros.h"
 #include "src/Tachometer.h"
 #include "src/EngineSimulator.h"
 #include "src/Indicator.h"
-#include <Adafruit_NeoPixel.h>
 
-#define REV_MIN             1000      //Tachometer minimal rpm
+
+#define REV_MIN             700       //Tachometer minimal rpm
 #define REV_PERF            2000      //Color indication change threshold
-#define REV_SHIFT           3000      //Shift-light RPM
+#define REV_SHIFT           4000      //Shift-light RPM
 
 //Coloring                               t                     (R)      (G)     (B)
 uint32_t const COLOR_IDLE = Adafruit_NeoPixel::Color          (150,     50,     0);          //Amber
@@ -21,7 +23,7 @@ uint32_t const COLOR_SHIFT = Adafruit_NeoPixel::Color         (150,     150,    
 #define MAX_SPIKES          10
 #define SMOOTHING_FILTER    10
 
-#define NUMPIXELS           12        //qty of LEDs
+#define NUMPIXELS           9         //qty of LEDs
 #define LEDSTRIP_PIN        10        //Digital output to led strip
 #define RPM_PIN             2         //Tachometer signal pin
 #define DIM_PIN             8         // not in use
@@ -55,7 +57,6 @@ void setup() {
 
 
 
-
 //
 //  Main loop
 //
@@ -77,8 +78,6 @@ void loop()
 
 
 
-
-
 //
 //  Function assigned to interruption (rising)
 //
@@ -86,4 +85,3 @@ void getRpm()
 {
   tacho.processInterrupt();
 }
-

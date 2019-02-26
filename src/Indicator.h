@@ -5,6 +5,8 @@
 #include <Adafruit_NeoPixel.h>
 #include "DebugMacros.h"
 
+
+
 class Indicator
 {
   public:
@@ -28,6 +30,7 @@ class Indicator
     
     uint32_t _blinkLastTime;
     bool _lightOn;
+    uint32_t _countShiftLightBlinked;
     
     
     uint16_t rpmToPixelsQty(uint16_t rpm, uint16_t totalPixels);

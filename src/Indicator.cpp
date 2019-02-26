@@ -10,6 +10,7 @@ Indicator::Indicator(uint16_t qtyPixels, uint8_t pin)
 
   _blinkLastTime = 0;
   _lightOn = false;
+  _countShiftLightBlinked = 0;
 
 }
 
@@ -72,7 +73,7 @@ void Indicator::showRpm(uint16_t rpm, uint16_t style)
     return;
   }
 
-  //Which color to use
+
   uint32_t colorToUse = (rpm > _rpmPerf) ? _colorPerf : _colorIdle;
   uint32_t c;              
   uint16_t pixelsToFireQTY;
@@ -116,7 +117,8 @@ void Indicator::showRpm(uint16_t rpm, uint16_t style)
   }
   
   //Reset shift-light state
-  _lightOn = false;                                                         
+  _lightOn = false;
+  _countShiftLightBlinked = 0;                                                     
 }
 
 
@@ -180,6 +182,12 @@ void Indicator::pixels(uint16_t n, uint32_t c)
 
 void Indicator::shiftLight()                         
 {
+    if (_countShiftLightBlinked > 20 ) 
+    {
+      pixels(_pixels.numPixels(), _colorShift);
+      return;
+    }
+
     if ((millis() - _blinkLastTime) > 100)     //Shift light blinks every 40 milliseconds
     {
       int countPixels = (!_lightOn) ? _pixels.numPixels() : 0;
@@ -187,6 +195,7 @@ void Indicator::shiftLight()
       pixels(countPixels, _colorShift);
       _blinkLastTime = millis();
       _lightOn = !_lightOn;
+      _countShiftLightBlinked++;
     }
 }
 
